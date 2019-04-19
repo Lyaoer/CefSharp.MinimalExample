@@ -6,38 +6,76 @@ using System;
 using System.Windows.Forms;
 using CefSharp.MinimalExample.WinForms.Controls;
 using CefSharp.WinForms;
+using System.Timers;
+using System.Net;
+using System.Text;
+using YamlDotNet.RepresentationModel;
+using System.IO;
 
 namespace CefSharp.MinimalExample.WinForms
 {
     public partial class BrowserForm : Form
     {
         private readonly ChromiumWebBrowser browser;
+        public static string url_bak = "";
+        public static string url = "kb.fzyun.io";
+        public static int flag = 0;
+
+        public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
+        public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
 
         public BrowserForm()
         {
             InitializeComponent();
 
-            Text = "CefSharp";
+            Text = "大屏展示";
             WindowState = FormWindowState.Maximized;
-
-            browser = new ChromiumWebBrowser("www.google.com")
+            //var url = "172.19.210.25/index/amcharts?env=stage";
+            //var url = "cicd.dev.fzyun.io/index/three?env=try";
+            //var url = "www.baidu.com";
+            browser = new ChromiumWebBrowser(url)
             {
                 Dock = DockStyle.Fill,
             };
             toolStripContainer.ContentPanel.Controls.Add(browser);
 
             browser.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
-            browser.LoadingStateChanged += OnLoadingStateChanged;
-            browser.ConsoleMessage += OnBrowserConsoleMessage;
             browser.StatusMessage += OnBrowserStatusMessage;
             browser.TitleChanged += OnBrowserTitleChanged;
-            browser.AddressChanged += OnBrowserAddressChanged;
 
-            var bitness = Environment.Is64BitProcess ? "x64" : "x86";
-            var version = String.Format("Chromium: {0}, CEF: {1}, CefSharp: {2}, Environment: {3}", Cef.ChromiumVersion, Cef.CefVersion, Cef.CefSharpVersion, bitness);
-            DisplayOutput(version);
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+            timer.Interval = 2000;
+            timer.Tick += delegate (object o, EventArgs args)
+            {
+                changeURL();
+            };
+            timer.Start();
+
         }
 
+        private void changeURL()
+        {
+            url_bak = url;
+            url = GetUrlFromGit();
+            if (url != url_bak)
+            {
+                LoadUrl(url);
+            }
+            //Console.WriteLine("OK, test event is fired at: " + DateTime.Now.ToString());
+        }
+        private string GetUrlFromGit()
+        {
+            System.Net.HttpWebRequest request;
+            request = (System.Net.HttpWebRequest)WebRequest.Create(GIT_URL);
+            request.Method = "GET";
+            request.Headers.Add("PRIVATE-TOKEN", PRIVATE_TOKEN);
+            System.Net.HttpWebResponse response;
+            response = (System.Net.HttpWebResponse)request.GetResponse();
+            var responseText = new System.IO.StreamReader(response.GetResponseStream()).ReadToEnd();
+            string[] sArray = responseText.Split(new char[2] { ' ', '\n' });
+            return sArray[11];
+
+        }
         private void OnIsBrowserInitializedChanged(object sender, IsBrowserInitializedChangedEventArgs e)
         {
             if(e.IsBrowserInitialized)
@@ -58,44 +96,9 @@ namespace CefSharp.MinimalExample.WinForms
             this.InvokeOnUiThreadIfRequired(() => statusLabel.Text = args.Value);
         }
 
-        private void OnLoadingStateChanged(object sender, LoadingStateChangedEventArgs args)
-        {
-            SetCanGoBack(args.CanGoBack);
-            SetCanGoForward(args.CanGoForward);
-
-            this.InvokeOnUiThreadIfRequired(() => SetIsLoading(!args.CanReload));
-        }
-
         private void OnBrowserTitleChanged(object sender, TitleChangedEventArgs args)
         {
             this.InvokeOnUiThreadIfRequired(() => Text = args.Title);
-        }
-
-        private void OnBrowserAddressChanged(object sender, AddressChangedEventArgs args)
-        {
-            this.InvokeOnUiThreadIfRequired(() => urlTextBox.Text = args.Address);
-        }
-
-        private void SetCanGoBack(bool canGoBack)
-        {
-            this.InvokeOnUiThreadIfRequired(() => backButton.Enabled = canGoBack);
-        }
-
-        private void SetCanGoForward(bool canGoForward)
-        {
-            this.InvokeOnUiThreadIfRequired(() => forwardButton.Enabled = canGoForward);
-        }
-
-        private void SetIsLoading(bool isLoading)
-        {
-            goButton.Text = isLoading ?
-                "Stop" :
-                "Go";
-            goButton.Image = isLoading ?
-                Properties.Resources.nav_plain_red :
-                Properties.Resources.nav_plain_green;
-
-            HandleToolStripLayout();
         }
 
         public void DisplayOutput(string output)
@@ -103,34 +106,11 @@ namespace CefSharp.MinimalExample.WinForms
             this.InvokeOnUiThreadIfRequired(() => outputLabel.Text = output);
         }
 
-        private void HandleToolStripLayout(object sender, LayoutEventArgs e)
-        {
-            HandleToolStripLayout();
-        }
-
-        private void HandleToolStripLayout()
-        {
-            var width = toolStrip1.Width;
-            foreach (ToolStripItem item in toolStrip1.Items)
-            {
-                if (item != urlTextBox)
-                {
-                    width -= item.Width - item.Margin.Horizontal;
-                }
-            }
-            urlTextBox.Width = Math.Max(0, width - urlTextBox.Margin.Horizontal - 18);
-        }
-
         private void ExitMenuItemClick(object sender, EventArgs e)
         {
             browser.Dispose();
             Cef.Shutdown();
             Close();
-        }
-
-        private void GoButtonClick(object sender, EventArgs e)
-        {
-            LoadUrl(urlTextBox.Text);
         }
 
         private void BackButtonClick(object sender, EventArgs e)
@@ -149,8 +129,6 @@ namespace CefSharp.MinimalExample.WinForms
             {
                 return;
             }
-
-            LoadUrl(urlTextBox.Text);
         }
 
         private void LoadUrl(string url)
