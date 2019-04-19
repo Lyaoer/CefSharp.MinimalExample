@@ -42,6 +42,7 @@ namespace CefSharp.MinimalExample.WinForms
             browser.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
             browser.StatusMessage += OnBrowserStatusMessage;
             browser.TitleChanged += OnBrowserTitleChanged;
+            this.ShowIcon = false;
 
             System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
             timer.Interval = 2000;
