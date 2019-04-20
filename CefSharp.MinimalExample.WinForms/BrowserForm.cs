@@ -16,55 +16,43 @@ namespace CefSharp.MinimalExample.WinForms
 {
     public partial class BrowserForm : Form
     {
-        private readonly ChromiumWebBrowser browser;
-        public static string url_bak = "";
-        public static string url = "kb.fzyun.io";
-        public static int flag = 0;
+        //private readonly ChromiumWebBrowser browser;
+        //public static string url_bak = "";
+        //public static string url = "kb.fzyun.io";
+        //public static int flag = 0;
 
-        public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
-        public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
+        //public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
+        //public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
 
-        public BrowserForm()
+        public BrowserForm(string url, int[] position)
         {
+            ChromiumWebBrowser browser;
             InitializeComponent();
 
             Text = "大屏展示";
-            WindowState = FormWindowState.Maximized;
-            //var url = "172.19.210.25/index/amcharts?env=stage";
-            //var url = "cicd.dev.fzyun.io/index/three?env=try";
-            //var url = "www.baidu.com";
+            //WindowState = FormWindowState.Maximized;
+            SetDesktopLocation(position[0], position[1]);
             browser = new ChromiumWebBrowser(url)
             {
                 Dock = DockStyle.Fill,
             };
             toolStripContainer.ContentPanel.Controls.Add(browser);
-
-            browser.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
-            browser.StatusMessage += OnBrowserStatusMessage;
-            browser.TitleChanged += OnBrowserTitleChanged;
-            this.ShowIcon = false;
-
-            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
-            timer.Interval = 2000;
-            timer.Tick += delegate (object o, EventArgs args)
-            {
-                changeURL();
-            };
-            timer.Start();
-
+            //browser.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
+            //browser.StatusMessage += OnBrowserStatusMessage;
+            //browser.TitleChanged += OnBrowserTitleChanged;
         }
-
+        /*
         private void changeURL()
         {
             url_bak = url;
-            url = GetUrlFromGit();
+            url = GetSTHFromGit();
             if (url != url_bak)
             {
                 LoadUrl(url);
             }
-            //Console.WriteLine("OK, test event is fired at: " + DateTime.Now.ToString());
+            Console.WriteLine("OK, test event is fired at: " + DateTime.Now.ToString());
         }
-        private string GetUrlFromGit()
+        private string GetSTHFromGit()
         {
             System.Net.HttpWebRequest request;
             request = (System.Net.HttpWebRequest)WebRequest.Create(GIT_URL);
@@ -72,11 +60,21 @@ namespace CefSharp.MinimalExample.WinForms
             request.Headers.Add("PRIVATE-TOKEN", PRIVATE_TOKEN);
             System.Net.HttpWebResponse response;
             response = (System.Net.HttpWebResponse)request.GetResponse();
-            var responseText = new System.IO.StreamReader(response.GetResponseStream()).ReadToEnd();
-            string[] sArray = responseText.Split(new char[2] { ' ', '\n' });
+            var responseStream = new System.IO.StreamReader(response.GetResponseStream()).ReadToEnd();
+            var responseStr = new StringReader(responseStream);
+            var yaml = new YamlStream();
+            yaml.Load(responseStr);
+            
+            var mapping =(YamlMappingNode)yaml.Documents[0].RootNode;
+            var items = (YamlSequenceNode)mapping.Children[new YamlScalarNode("clients")];
+            //var rtg1 = items.Children[new YamlScalarNode("part_no")];
+            //var rtg2 = items.Children[new YamlScalarNode("descrip")];
+
+            string[] sArray = responseStream.Split(new char[2] { ' ', '\n' });
             return sArray[11];
 
         }
+        */
         private void OnIsBrowserInitializedChanged(object sender, IsBrowserInitializedChangedEventArgs e)
         {
             if(e.IsBrowserInitialized)
@@ -107,22 +105,12 @@ namespace CefSharp.MinimalExample.WinForms
             this.InvokeOnUiThreadIfRequired(() => outputLabel.Text = output);
         }
 
-        private void ExitMenuItemClick(object sender, EventArgs e)
-        {
-            browser.Dispose();
-            Cef.Shutdown();
-            Close();
-        }
-
-        private void BackButtonClick(object sender, EventArgs e)
-        {
-            browser.Back();
-        }
-
-        private void ForwardButtonClick(object sender, EventArgs e)
-        {
-            browser.Forward();
-        }
+        //private void ExitMenuItemClick(object sender, EventArgs e)
+        //{
+        //    browser.Dispose();
+        //    Cef.Shutdown();
+        //    Close();
+        //}
 
         private void UrlTextBoxKeyUp(object sender, KeyEventArgs e)
         {
@@ -132,17 +120,17 @@ namespace CefSharp.MinimalExample.WinForms
             }
         }
 
-        private void LoadUrl(string url)
-        {
-            if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
-            {
-                browser.Load(url);
-            }
-        }
+        //private void LoadUrl(string url)
+        //{
+        //    if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
+        //    {
+        //        browser.Load(url);
+        //    }
+        //}
 
-        private void ShowDevToolsMenuItemClick(object sender, EventArgs e)
-        {
-            browser.ShowDevTools();
-        }
+        //private void ShowDevToolsMenuItemClick(object sender, EventArgs e)
+        //{
+        //    browser.ShowDevTools();
+        //}
     }
 }
