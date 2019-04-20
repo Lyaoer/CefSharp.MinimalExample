@@ -11,27 +11,27 @@ using System.Net;
 using System.Text;
 using YamlDotNet.RepresentationModel;
 using System.IO;
+using System.Drawing;
 
 namespace CefSharp.MinimalExample.WinForms
 {
     public partial class BrowserForm : Form
     {
-        //private readonly ChromiumWebBrowser browser;
-        //public static string url_bak = "";
-        //public static string url = "kb.fzyun.io";
-        //public static int flag = 0;
-
-        //public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
-        //public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
-
-        public BrowserForm(string url, int[] position)
+        private readonly ChromiumWebBrowser browser;
+        public BrowserForm(int i, string url, int[] position)
         {
-            ChromiumWebBrowser browser;
             InitializeComponent();
 
-            Text = "大屏展示";
+            Text = url;
             //WindowState = FormWindowState.Maximized;
-            SetDesktopLocation(position[0], position[1]);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            //窗体的位置由Location属性决定
+            this.StartPosition = FormStartPosition.Manual;
+            //窗体的起始位置 
+            this.Location = (Point)new Size(position[0], position[1]);
+            //SetDesktopLocation(position[0], position[1]);
+            //X为宽度，Y为高度
+            this.ClientSize = new System.Drawing.Size(position[2], position[3]);
             browser = new ChromiumWebBrowser(url)
             {
                 Dock = DockStyle.Fill,
@@ -40,41 +40,41 @@ namespace CefSharp.MinimalExample.WinForms
             //browser.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
             //browser.StatusMessage += OnBrowserStatusMessage;
             //browser.TitleChanged += OnBrowserTitleChanged;
-        }
-        /*
-        private void changeURL()
-        {
-            url_bak = url;
-            url = GetSTHFromGit();
-            if (url != url_bak)
+
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+            timer.Interval = 2000;
+            timer.Tick += delegate (object o, EventArgs args)
             {
-                LoadUrl(url);
-            }
-            Console.WriteLine("OK, test event is fired at: " + DateTime.Now.ToString());
+                YamlSequenceNode yaml = MyTool.GetYAMLFromGit();
+                string new_url = MyTool.GetURL(yaml, i);
+                int number = MyTool.GetClientNumber(yaml);
+                int[] new_position = MyTool.GetPosition(yaml, i);
+                if (new_url == null) {
+                    browser.Dispose();
+                    Cef.Shutdown();
+                    Close();
+                } else if (!url.Equals(new_url))
+                {
+                    changeURL(new_url);
+                    url = new_url;
+                } else if (position[0] != new_position[0] && position[1] != new_position[1]) {
+                    this.Location = (Point)new Size(new_position[0], new_position[1]);
+                    position[0] = new_position[0];
+                    position[1] = new_position[1];
+                } else if (position[2] != new_position[2] && position[3] != new_position[3]) {
+                    this.ClientSize = new System.Drawing.Size(new_position[2], new_position[3]);
+                    position[2] = new_position[2];
+                    position[3] = new_position[3];
+                }
+            };
+            timer.Start();
         }
-        private string GetSTHFromGit()
+        
+        private void changeURL(string url)
         {
-            System.Net.HttpWebRequest request;
-            request = (System.Net.HttpWebRequest)WebRequest.Create(GIT_URL);
-            request.Method = "GET";
-            request.Headers.Add("PRIVATE-TOKEN", PRIVATE_TOKEN);
-            System.Net.HttpWebResponse response;
-            response = (System.Net.HttpWebResponse)request.GetResponse();
-            var responseStream = new System.IO.StreamReader(response.GetResponseStream()).ReadToEnd();
-            var responseStr = new StringReader(responseStream);
-            var yaml = new YamlStream();
-            yaml.Load(responseStr);
-            
-            var mapping =(YamlMappingNode)yaml.Documents[0].RootNode;
-            var items = (YamlSequenceNode)mapping.Children[new YamlScalarNode("clients")];
-            //var rtg1 = items.Children[new YamlScalarNode("part_no")];
-            //var rtg2 = items.Children[new YamlScalarNode("descrip")];
-
-            string[] sArray = responseStream.Split(new char[2] { ' ', '\n' });
-            return sArray[11];
-
+            LoadUrl(url);
         }
-        */
+        
         private void OnIsBrowserInitializedChanged(object sender, IsBrowserInitializedChangedEventArgs e)
         {
             if(e.IsBrowserInitialized)
@@ -105,12 +105,12 @@ namespace CefSharp.MinimalExample.WinForms
             this.InvokeOnUiThreadIfRequired(() => outputLabel.Text = output);
         }
 
-        //private void ExitMenuItemClick(object sender, EventArgs e)
-        //{
-        //    browser.Dispose();
-        //    Cef.Shutdown();
-        //    Close();
-        //}
+        private void ExitMenuItemClick(object sender, EventArgs e)
+        {
+            browser.Dispose();
+            Cef.Shutdown();
+            Close();
+        }
 
         private void UrlTextBoxKeyUp(object sender, KeyEventArgs e)
         {
@@ -120,14 +120,14 @@ namespace CefSharp.MinimalExample.WinForms
             }
         }
 
-        //private void LoadUrl(string url)
-        //{
-        //    if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
-        //    {
-        //        browser.Load(url);
-        //    }
-        //}
-
+        private void LoadUrl(string url)
+        {
+            if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
+            {
+                browser.Load(url);
+            }
+        }
+        
         //private void ShowDevToolsMenuItemClick(object sender, EventArgs e)
         //{
         //    browser.ShowDevTools();

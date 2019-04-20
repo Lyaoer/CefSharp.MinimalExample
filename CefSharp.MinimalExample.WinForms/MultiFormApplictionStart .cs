@@ -9,13 +9,12 @@ using System.Net;
 using CefSharp.WinForms;
 using System.IO;
 using System.Drawing;
+using System.Threading;
 
 namespace CefSharp.MinimalExample.WinForms
 {
     class MultiFormApplictionStart : ApplicationContext
     {
-        public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
-        public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
         private void onFormClosed(object sender, EventArgs e)
         {
             if (Application.OpenForms.Count == 0)
@@ -26,28 +25,18 @@ namespace CefSharp.MinimalExample.WinForms
         public MultiFormApplictionStart()
         {
             //从git中获取yaml文件
-            YamlSequenceNode yaml = GetYAMLFromGit();
+            YamlSequenceNode yaml = MyTool.GetYAMLFromGit();
             //窗口个数
-            int number = GetClientNumber(yaml);
-            
+            int number = MyTool.GetClientNumber(yaml);
             //启动窗口
             var formList = new List<Form>();
             int i = 0;
             while (i < number)
             {
-                //第N个窗口的信息
-                string url = GetURL(yaml, i);
-                int[] position = GetPosition(yaml, i);
-                var browser = new BrowserForm(url, position);
-                //var browser = new Form1(url, position);
-                Size size = new Size(position[2], position[3]);
-                browser.Size = size;
-                formList.Add(browser);
+                newForm(yaml,i,formList);
                 i++;
             }
-            /*
-             *里面添加启动的窗口
-             */
+            //里面添加启动的窗口
             foreach (var item in formList)
             {
                 item.FormClosed += onFormClosed;
@@ -57,47 +46,48 @@ namespace CefSharp.MinimalExample.WinForms
                 item.Show();
             }
 
-        }
-        private YamlSequenceNode GetYAMLFromGit()
-        {
-            System.Net.HttpWebRequest request;
-            request = (System.Net.HttpWebRequest)WebRequest.Create(GIT_URL);
-            request.Method = "GET";
-            request.Headers.Add("PRIVATE-TOKEN", PRIVATE_TOKEN);
-            System.Net.HttpWebResponse response;
-            response = (System.Net.HttpWebResponse)request.GetResponse();
-            var responseStream = new System.IO.StreamReader(response.GetResponseStream()).ReadToEnd();
-            var responseStr = new StringReader(responseStream);
-            var yaml = new YamlStream();
-            yaml.Load(responseStr);
-            var mapping = (YamlMappingNode)yaml.Documents[0].RootNode;
-            var items = (YamlSequenceNode)mapping.Children[new YamlScalarNode("clients")];
-            
-            return items;
-
-        }
-        private int GetClientNumber(YamlSequenceNode yaml)
-        {
-            return yaml.Children.Count;
-        }
-        private string GetURL(YamlSequenceNode yaml, int index)
-        {
-            YamlMappingNode mapping = (YamlMappingNode)yaml.Children[index];
-            string url = (String)mapping.Children[new YamlScalarNode("url")];
-            return url;
-        }
-        private int[] GetPosition(YamlSequenceNode yaml, int index)
-        {
-            int[] position = new int[4];
-            YamlMappingNode mapping = (YamlMappingNode)yaml.Children[index];
-            var items = (YamlSequenceNode)mapping.Children[new YamlScalarNode("position")];
-            int i = 0;
-            foreach (YamlScalarNode item in items)
+            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+            timer.Interval = 2000;
+            timer.Tick += delegate (object o, EventArgs args)
             {
-                position[i] = int.Parse(item.Value);
+                YamlSequenceNode new_yaml = MyTool.GetYAMLFromGit();
+                int new_number = MyTool.GetClientNumber(new_yaml);
+                if (new_number > number) {
+                    int j = number;
+                    while (j < new_number)
+                    {
+                        newForm(new_yaml, j, formList);
+                        formList[j].Show();
+                        j++;
+                    }
+                }
+            };
+            timer.Start();
+        }
+        private void newForm(YamlSequenceNode yaml, int i, List<Form> formList) {
+            //第N个窗口的信息
+            string url = MyTool.GetURL(yaml, i);
+            int[] position = MyTool.GetPosition(yaml, i);
+            var browser = new BrowserForm(i, url, position);
+            //var browser = new Form1(url, position);
+            //Size size = new Size(position[2], position[3]);
+            //browser.Size = size;
+            formList.Add(browser);
+        }
+        private void changeBrowser(List<Form> formList, int number) {
+            //从git中获取yaml文件
+            YamlSequenceNode yaml = MyTool.GetYAMLFromGit();
+            //窗口个数
+            int newNumber = MyTool.GetClientNumber(yaml);
+            int i = 0;
+            foreach (var item in formList) {
+                string new_url = MyTool.GetURL(yaml, i);
+                int[] new_position = MyTool.GetPosition(yaml, i);
+                if (!new_url.Equals(item.Text)) {
+                    //item.FormClosed += onFormClosed;
+                }
                 i++;
             }
-            return position;
         }
     }
 }
