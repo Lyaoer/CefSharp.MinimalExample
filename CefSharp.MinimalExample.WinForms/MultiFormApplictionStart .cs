@@ -60,6 +60,13 @@ namespace CefSharp.MinimalExample.WinForms
                         formList[j].Show();
                         j++;
                     }
+                } else if (new_number < number) {
+                    int j = number;
+                    while (j<new_number) {
+                        int last = formList.Count;
+                        formList.RemoveAt(last-1);
+                        formList[last - 1].Close();
+                    }
                 }
             };
             timer.Start();
