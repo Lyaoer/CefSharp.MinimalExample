@@ -22,7 +22,7 @@ namespace CefSharp.MinimalExample.WinForms
         public static int flag = 0;
 
         public const string GIT_URL = "http://git.fzyun.io/api/v4/projects/491/repository/files/current%2Fconfig%2Eyml/raw?ref=monitor-test";
-        public const string PRIVATE_TOKEN = "9UqYy7kdvgAnEi2AhPJ_";
+        public const string PRIVATE_TOKEN = "";
 
         public BrowserForm()
         {
